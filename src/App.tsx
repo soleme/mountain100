@@ -5,13 +5,15 @@ import { useRoute, type Route } from './lib/router'
 import { Detail } from './pages/Detail'
 import { Home } from './pages/Home'
 import { List } from './pages/List'
+import { Local } from './pages/Local'
+import { LocalDetail } from './pages/LocalDetail'
 import { Settings } from './pages/Settings'
 import { Stamps } from './pages/Stamps'
 
 // 지도(leaflet)는 무거워서 지도 탭을 열 때만 불러옴
 const MapPage = lazy(() => import('./pages/MapPage').then((m) => ({ default: m.MapPage })))
 
-const routeKey = (r: Route) => (r.name === 'mountain' ? `m${r.id}` : r.name)
+const routeKey = (r: Route) => (r.name === 'mountain' ? `m${r.id}` : r.name === 'localMountain' ? `l${r.id}` : r.name)
 
 // 목록 → 상세 → 뒤로가기 했을 때 보던 위치로 돌아가도록 화면별 스크롤 기억
 const scrollPos = new Map<string, number>()
@@ -34,13 +36,17 @@ function Page({ route }: { route: Route }) {
       return <Settings />
     case 'mountain':
       return <Detail id={route.id} />
+    case 'local':
+      return <Local />
+    case 'localMountain':
+      return <LocalDetail id={route.id} />
   }
 }
 
 export default function App() {
   const route = useRoute()
   const key = routeKey(route)
-  const showTabs = route.name !== 'mountain' && route.name !== 'settings'
+  const showTabs = route.name !== 'mountain' && route.name !== 'localMountain' && route.name !== 'settings'
 
   useLayoutEffect(() => {
     window.scrollTo(0, scrollPos.get(key) ?? 0)

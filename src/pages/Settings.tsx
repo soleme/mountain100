@@ -3,12 +3,14 @@ import { useRef, useState } from 'react'
 import { Celebration } from '../components/Celebration'
 import { IconBack } from '../components/Icons'
 import { CERT_RADIUS_M } from '../lib/geo'
-import { MOUNTAINS, type Mountain } from '../lib/mountains'
-import { allPhotos, blobToDataUrl, clearPhotos, dataUrlToBlob, putPhoto } from '../lib/photos'
+import { famousMilestone } from '../lib/levels'
+import { getLocals, replaceLocals, useLocals, type Locals } from '../lib/local'
+import { MOUNTAINS, REGION_COLOR, TOTAL, type Mountain } from '../lib/mountains'
+import { allPhotos, blobToDataUrl, clearPhotos, dataUrlToBlob, parsePhotoKey, putPhoto } from '../lib/photos'
 import { back } from '../lib/router'
 import { replaceAll, today, useClimbs, type Climbs } from '../lib/store'
 
-type Backup = { app: 'mountain100'; version: 1; exportedAt: string; climbs: Climbs; photos?: Record<string, string> }
+type Backup = { app: 'mountain100'; version: 1; exportedAt: string; climbs: Climbs; local?: Locals; photos?: Record<string, string> }
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
@@ -20,6 +22,7 @@ function download(name: string, text: string) {
 export function Settings() {
   const climbs = useClimbs()
   const count = Object.keys(climbs).length
+  const localCount = Object.keys(useLocals()).length
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState<Mountain | null>(null)
@@ -27,10 +30,10 @@ export function Settings() {
   const exportData = async (withPhotos: boolean) => {
     setBusy(true)
     try {
-      const data: Backup = { app: 'mountain100', version: 1, exportedAt: new Date().toISOString(), climbs }
+      const data: Backup = { app: 'mountain100', version: 1, exportedAt: new Date().toISOString(), climbs, local: getLocals() }
       if (withPhotos) {
         data.photos = {}
-        for (const [id, blob] of await allPhotos()) data.photos[id] = await blobToDataUrl(blob)
+        for (const [id, blob] of await allPhotos()) data.photos[String(id)] = await blobToDataUrl(blob)
       }
       download(`명산100-백업-${today()}.json`, JSON.stringify(data))
     } finally {
@@ -44,13 +47,15 @@ export function Settings() {
       const data = JSON.parse(await file.text()) as Backup
       if (data.app !== 'mountain100' || typeof data.climbs !== 'object') throw new Error()
       const n = Object.keys(data.climbs).length
-      if (!confirm(`백업의 정복 기록 ${n}개로 지금 기록(${count}개)을 덮어쓸까요?`)) return
+      const ln = Object.keys(data.local ?? {}).length
+      if (!confirm(`백업(명산 ${n}개 · 동네 산 ${ln}곳)으로 지금 기록을 덮어쓸까요?`)) return
       setBusy(true)
       if (data.photos) {
         await clearPhotos()
-        for (const [id, url] of Object.entries(data.photos)) await putPhoto(Number(id), await dataUrlToBlob(url))
+        for (const [id, url] of Object.entries(data.photos)) await putPhoto(parsePhotoKey(id), await dataUrlToBlob(url))
       }
       replaceAll(data.climbs)
+      replaceLocals(data.local ?? {})
       alert('복원했어요!')
     } catch {
       alert('백업 파일을 읽을 수 없어요.')
@@ -110,11 +115,12 @@ export function Settings() {
         <h2 className="section-title">초기화</h2>
         <button
           className="btn btn-block danger"
-          disabled={busy || count === 0}
+          disabled={busy || count + localCount === 0}
           onClick={async () => {
-            if (!confirm(`정복 기록 ${count}개와 사진을 모두 지울까요? 되돌릴 수 없어요.`)) return
+            if (!confirm(`명산 기록 ${count}개, 동네 산 ${localCount}곳과 사진을 모두 지울까요? 되돌릴 수 없어요.`)) return
             await clearPhotos().catch(() => {})
             replaceAll({})
+            replaceLocals({})
           }}
         >
           모든 기록 지우기
@@ -122,7 +128,20 @@ export function Settings() {
       </section>
 
       <AnimatePresence>
-        {preview && <Celebration mountain={preview} count={count + 1} date={today()} onClose={() => setPreview(null)} />}
+        {preview && (
+          <Celebration
+            name={preview.name}
+            color={REGION_COLOR[preview.region]}
+            date={today()}
+            detail={
+              <>
+                {preview.peak} {preview.height.toLocaleString()}m · 미리보기
+              </>
+            }
+            milestone={famousMilestone(Math.min(count + 1, TOTAL), TOTAL)}
+            onClose={() => setPreview(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

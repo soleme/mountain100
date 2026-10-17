@@ -35,3 +35,32 @@ export function Stamp({ mountain, climb, size = 84 }: { mountain: Mountain; clim
     </div>
   )
 }
+
+const hashTilt = (id: string) => {
+  let h = 0
+  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) | 0
+  return (Math.abs(h) % 23) - 11
+}
+
+/** 동네 산 도장: 몇 번 올랐는지 ×N 으로 표시 */
+export function LocalStamp({ id, name, color, date, count, size = 76 }: { id: string; name: string; color: string; date: string; count: number; size?: number }) {
+  const style = {
+    width: size,
+    height: size,
+    fontSize: size / 6,
+    ['--c' as string]: color,
+    ['--tilt' as string]: `${hashTilt(id)}deg`,
+  } as CSSProperties
+  return (
+    <div className="stamp stamp-done" style={style}>
+      <svg viewBox="0 0 40 24" className="stamp-mt" aria-hidden>
+        <path d="M2 22C8 12 13 10 17 14C21 7 28 6 38 22Z" fill="currentColor" />
+      </svg>
+      <span className="stamp-name" style={{ fontSize: `${Math.min(1, 4.2 / name.length)}em` }}>
+        {name}
+      </span>
+      <span className="stamp-date">{shortDate(date)}</span>
+      {count > 1 && <span className="stamp-count">×{count}</span>}
+    </div>
+  )
+}

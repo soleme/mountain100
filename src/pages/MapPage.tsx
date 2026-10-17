@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import { IconLocate } from '../components/Icons'
 import { getHere, locate, useHere } from '../lib/here'
+import { LOCAL_COLOR, localPath, useLocals } from '../lib/local'
 import { MOUNTAINS, REGION_COLOR } from '../lib/mountains'
 import { go } from '../lib/router'
 import { useClimbs } from '../lib/store'
@@ -29,6 +30,15 @@ function pinIcon(done: boolean, color: string) {
   return icon
 }
 
+// 동네 산은 동그란 핀으로 구분
+const localIcon = L.divIcon({
+  className: 'pin',
+  html: `<svg viewBox="0 0 28 30" width="26" height="28"><line x1="14" y1="9" x2="14" y2="1.5" stroke="#6B5444" stroke-width="2" stroke-linecap="round"/><path d="M15 1.5L22 4L15 6.5Z" fill="#FF7B7B"/><circle cx="14" cy="18" r="9.5" fill="${LOCAL_COLOR}" stroke="#fff" stroke-width="2.5"/><path d="M8.5 21C10 17.5 11.5 16.5 13 17.8C14.5 15 17 14.5 19.5 21Z" fill="#fff" opacity=".9"/></svg>`,
+  iconSize: [26, 28],
+  iconAnchor: [13, 26],
+  popupAnchor: [0, -22],
+})
+
 function LocateButton({ map }: { map: L.Map | null }) {
   const { loading } = useHere()
   return (
@@ -49,6 +59,7 @@ function LocateButton({ map }: { map: L.Map | null }) {
 
 export function MapPage() {
   const climbs = useClimbs()
+  const locals = useLocals()
   const [onlyTodo, setOnlyTodo] = useState(false)
   const { here } = useHere()
   const [map, setMap] = useState<L.Map | null>(null)
@@ -80,6 +91,17 @@ export function MapPage() {
                   {m.peak} {m.height.toLocaleString()}m
                 </span>
                 <button onClick={() => go(`/m/${m.id}`)}>{climbs[m.id] ? '정복 기록 보기' : '자세히 보기'} →</button>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+        {Object.values(locals).map((l) => (
+          <Marker key={l.id} position={[l.lat, l.lng]} icon={localIcon}>
+            <Popup>
+              <div className="popup">
+                <b>{l.name}</b>
+                <span>동네 산 · {l.visits.length}번 등반</span>
+                <button onClick={() => go(localPath(l.id))}>기록 보기 →</button>
               </div>
             </Popup>
           </Marker>

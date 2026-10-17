@@ -29,7 +29,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // peaks.json(봉우리 데이터)까지 미리 받아 두어 산 위에서 오프라인으로도 동네 산을 찾게 함
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,json}'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.hostname.endsWith('tile.openstreetmap.org'),

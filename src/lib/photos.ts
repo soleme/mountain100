@@ -32,22 +32,25 @@ const bump = () => {
   listeners.forEach((l) => l())
 }
 
-export const putPhoto = (id: number, blob: Blob) => tx('readwrite', (s) => s.put(blob, id)).then(bump)
-export const getPhoto = (id: number) => tx<Blob | undefined>('readonly', (s) => s.get(id))
-export const deletePhoto = (id: number) => tx('readwrite', (s) => s.delete(id)).then(bump)
+// 명산100은 산 번호(number), 동네 산은 'local:<id>'(string)를 키로 씀
+export type PhotoKey = number | string
+
+export const putPhoto = (id: PhotoKey, blob: Blob) => tx('readwrite', (s) => s.put(blob, id)).then(bump)
+export const getPhoto = (id: PhotoKey) => tx<Blob | undefined>('readonly', (s) => s.get(id))
+export const deletePhoto = (id: PhotoKey) => tx('readwrite', (s) => s.delete(id)).then(bump)
 export const clearPhotos = () => tx('readwrite', (s) => s.clear()).then(bump)
 
 export async function allPhotos() {
   const keys = await tx<IDBValidKey[]>('readonly', (s) => s.getAllKeys())
-  const out: [number, Blob][] = []
-  for (const k of keys) {
-    const b = await getPhoto(Number(k))
-    if (b) out.push([Number(k), b])
+  const out: [PhotoKey, Blob][] = []
+  for (const k of keys as PhotoKey[]) {
+    const b = await getPhoto(k)
+    if (b) out.push([k, b])
   }
   return out
 }
 
-export function usePhotoUrl(id: number) {
+export function usePhotoUrl(id: PhotoKey) {
   const [url, setUrl] = useState<string>()
   const [v, setV] = useState(version)
   useEffect(() => {
@@ -98,3 +101,6 @@ export const blobToDataUrl = (b: Blob) =>
   })
 
 export const dataUrlToBlob = (url: string) => fetch(url).then((r) => r.blob())
+
+/** 백업 JSON의 키(항상 문자열)를 원래 키 타입으로 되돌림 */
+export const parsePhotoKey = (k: string): PhotoKey => (/^\d+$/.test(k) ? Number(k) : k)

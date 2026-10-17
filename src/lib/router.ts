@@ -7,11 +7,16 @@ export type Route =
   | { name: 'stamps' }
   | { name: 'settings' }
   | { name: 'mountain'; id: number }
+  | { name: 'local' }
+  | { name: 'localMountain'; id: string }
 
 function parse(hash: string): Route {
   const path = hash.replace(/^#/, '')
   const m = path.match(/^\/m\/(\d+)/)
   if (m) return { name: 'mountain', id: Number(m[1]) }
+  const l = path.match(/^\/l\/(.+)/)
+  if (l) return { name: 'localMountain', id: decodeURIComponent(l[1]) }
+  if (path.startsWith('/local')) return { name: 'local' }
   if (path.startsWith('/list')) return { name: 'list' }
   if (path.startsWith('/map')) return { name: 'map' }
   if (path.startsWith('/stamps')) return { name: 'stamps' }

@@ -1,15 +1,17 @@
 import confetti from 'canvas-confetti'
 import { motion, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
-import { isMilestone, levelFor } from '../lib/levels'
-import { REGION_COLOR, TOTAL, type Mountain } from '../lib/mountains'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type { Milestone } from '../lib/levels'
 import { shortDate } from '../lib/store'
 import { Mascot, type Mood } from './Mascot'
 
 type Props = {
-  mountain: Mountain
-  count: number
+  name: string
+  color: string
   date: string
+  /** 제목 아래 한 줄 (예: 백운대 836m · 명산 100개 중 10번째) */
+  detail: ReactNode
+  milestone?: Milestone
   onClose: () => void
 }
 
@@ -34,15 +36,14 @@ function Sparkle({ size = 22, color = '#FFD36E' }: { size?: number; color?: stri
 
 type Heart = { id: number; x: number; emoji: string }
 
-export function Celebration({ mountain, count, date, onClose }: Props) {
+export function Celebration({ name, color, date, detail, milestone, onClose }: Props) {
+  // milestone 객체는 렌더마다 새로 만들어지므로, 효과(색종이)는 boolean에만 반응하게
+  const big = Boolean(milestone)
   const reduce = useReducedMotion()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mood, setMood] = useState<Mood>('idle')
   const [hearts, setHearts] = useState<Heart[]>([])
   const [hops, setHops] = useState(0)
-  const color = REGION_COLOR[mountain.region]
-  const milestone = isMilestone(count)
-  const { current: level } = levelFor(count)
 
   useEffect(() => {
     navigator.vibrate?.([30, 80, 30, 80, 160])
@@ -63,7 +64,7 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
       }, 1380),
       // 꽃비
       setTimeout(() => {
-        const end = Date.now() + (milestone ? 3500 : 1600)
+        const end = Date.now() + (big ? 3500 : 1600)
         const rain = () => {
           fire({ particleCount: 2, angle: 270, spread: 180, startVelocity: 4, gravity: 0.5, drift: 0.4, scalar: 2, ticks: 260, shapes: emoji, origin: { x: Math.random(), y: -0.05 } })
           if (Date.now() < end) requestAnimationFrame(rain)
@@ -76,7 +77,7 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
       timers.forEach(clearTimeout)
       fire.reset()
     }
-  }, [reduce, milestone])
+  }, [reduce, big])
 
   const poke = () => {
     setHops((h) => h + 1)
@@ -90,7 +91,7 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
     <motion.div
       className="celebrate"
       role="dialog"
-      aria-label={`${mountain.name} 정복`}
+      aria-label={`${name} 정복`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.25 } }}
@@ -185,11 +186,11 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
           </motion.div>
         </div>
 
-        <h2 className="celebrate-title" aria-label={`${mountain.name} 정복!`}>
-          {[...mountain.name, ' ', ...'정복!'].map((ch, i) => (
+        <h2 className="celebrate-title" aria-label={`${name} 정복!`}>
+          {[...name, ' ', ...'정복!'].map((ch, i) => (
             <motion.span
               key={i}
-              className={i > mountain.name.length ? 'accent' : undefined}
+              className={i > name.length ? 'accent' : undefined}
               initial={reduce ? false : { y: 36, opacity: 0, rotate: i % 2 ? 12 : -12 }}
               animate={{ y: 0, opacity: 1, rotate: 0 }}
               transition={{ delay: 1.55 + i * 0.06, type: 'spring', stiffness: 520, damping: 13 }}
@@ -205,7 +206,7 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: reduce ? 0 : 2 }}
         >
-          {mountain.peak} {mountain.height.toLocaleString()}m · 명산 {TOTAL}개 중 <b>{count}번째</b>
+          {detail}
         </motion.p>
 
         {milestone && (
@@ -215,10 +216,10 @@ export function Celebration({ mountain, count, date, onClose }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: reduce ? 0 : 2.25, type: 'spring', stiffness: 400, damping: 12 }}
           >
-            <span>{level.emoji}</span>
+            <span>{milestone.emoji}</span>
             <div>
-              <b>{count === TOTAL ? `명산 ${TOTAL} 완등!!` : `${count}개 명산 달성!`}</b>
-              <small>새 칭호 「{level.title}」</small>
+              <b>{milestone.title}</b>
+              <small>{milestone.sub}</small>
             </div>
           </motion.div>
         )}

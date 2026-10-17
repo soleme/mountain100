@@ -22,3 +22,11 @@ export function levelFor(count: number) {
 export function isMilestone(count: number) {
   return MILESTONES.includes(count)
 }
+
+export type Milestone = { emoji: string; title: string; sub: string }
+
+export function famousMilestone(count: number, total: number): Milestone | undefined {
+  if (!isMilestone(count)) return undefined
+  const { current } = levelFor(count)
+  return { emoji: current.emoji, title: count === total ? `명산 ${total} 완등!!` : `${count}개 명산 달성!`, sub: `새 칭호 「${current.title}」` }
+}

@@ -6,7 +6,8 @@ import { IconBack } from '../components/Icons'
 import { Mascot } from '../components/Mascot'
 import { Stamp } from '../components/Stamp'
 import { formatDistance } from '../lib/geo'
-import { REGION_COLOR, getMountain, kakaoMapUrl, naverMapUrl } from '../lib/mountains'
+import { famousMilestone } from '../lib/levels'
+import { REGION_COLOR, TOTAL, getMountain, kakaoMapUrl, naverMapUrl } from '../lib/mountains'
 import { deletePhoto, putPhoto, resizeImage, usePhotoUrl } from '../lib/photos'
 import { back } from '../lib/router'
 import { getClimbs, removeClimb, saveClimb, updateClimb, useClimbs } from '../lib/store'
@@ -175,7 +176,7 @@ export function Detail({ id }: { id: number }) {
       )}
 
       <CertifySheet
-        mountain={m}
+        target={{ name: m.name, peakLabel: m.peak, lat: m.lat, lng: m.lng, color }}
         mode={mode}
         onClose={() => setMode(null)}
         onCertified={(c) => {
@@ -186,7 +187,20 @@ export function Detail({ id }: { id: number }) {
       />
 
       <AnimatePresence>
-        {celebrate && <Celebration mountain={m} count={celebrate.count} date={celebrate.date} onClose={() => setCelebrate(null)} />}
+        {celebrate && (
+          <Celebration
+            name={m.name}
+            color={color}
+            date={celebrate.date}
+            detail={
+              <>
+                {m.peak} {m.height.toLocaleString()}m · 명산 {TOTAL}개 중 <b>{celebrate.count}번째</b>
+              </>
+            }
+            milestone={famousMilestone(celebrate.count, TOTAL)}
+            onClose={() => setCelebrate(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   )

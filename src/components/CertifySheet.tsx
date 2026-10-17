@@ -1,15 +1,17 @@
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { CERT_RADIUS_M, distanceM, formatDistance, getPosition, isWithinSummit } from '../lib/geo'
-import { REGION_COLOR, type Mountain } from '../lib/mountains'
 import { today, type Climb } from '../lib/store'
 import { Mascot } from './Mascot'
 import { Sheet } from './Sheet'
 
 export type CertifyMode = 'gps' | 'manual'
 
+/** 인증 대상: 명산100이든 동네 산이든 이름·정상 좌표·색만 있으면 됨 */
+export type CertifyTarget = { name: string; peakLabel: string; lat: number; lng: number; color: string }
+
 type Props = {
-  mountain: Mountain
+  target: CertifyTarget
   mode: CertifyMode | null
   onClose: () => void
   onCertified: (climb: Omit<Climb, 'mountainId' | 'createdAt'>) => void
@@ -21,17 +23,17 @@ type Step =
   | { kind: 'error'; message: string }
   | { kind: 'manual' }
 
-export function CertifySheet({ mountain, mode, onClose, onCertified }: Props) {
+export function CertifySheet({ target, mode, onClose, onCertified }: Props) {
   const [step, setStep] = useState<Step>({ kind: 'locating' })
   const [date, setDate] = useState(today())
   const [memo, setMemo] = useState('')
-  const color = REGION_COLOR[mountain.region]
+  const color = target.color
 
   const locate = async () => {
     setStep({ kind: 'locating' })
     try {
       const pos = await getPosition()
-      const distance = distanceM({ lat: pos.coords.latitude, lng: pos.coords.longitude }, mountain)
+      const distance = distanceM({ lat: pos.coords.latitude, lng: pos.coords.longitude }, target)
       if (isWithinSummit(distance, pos.coords.accuracy)) {
         onCertified({ date: today(), method: 'gps', distance: Math.round(distance) })
       } else {
@@ -52,7 +54,7 @@ export function CertifySheet({ mountain, mode, onClose, onCertified }: Props) {
   }, [mode])
 
   return (
-    <Sheet open={mode !== null} onClose={onClose} label={`${mountain.name} 인증`}>
+    <Sheet open={mode !== null} onClose={onClose} label={`${target.name} 인증`}>
       {step.kind === 'locating' && (
         <div className="certify-center">
           <div className="radar">
@@ -69,7 +71,7 @@ export function CertifySheet({ mountain, mode, onClose, onCertified }: Props) {
           </div>
           <h3>정상 위치 확인 중…</h3>
           <p className="muted">
-            {mountain.peak} 반경 {CERT_RADIUS_M}m 안에 있으면 인증돼요
+            {target.peakLabel} 반경 {CERT_RADIUS_M}m 안에 있으면 인증돼요
           </p>
         </div>
       )}
@@ -124,7 +126,7 @@ export function CertifySheet({ mountain, mode, onClose, onCertified }: Props) {
             onCertified({ date, method: 'manual', memo: memo.trim() || undefined })
           }}
         >
-          <h3>{mountain.name} 등산 기록</h3>
+          <h3>{target.name} 등산 기록</h3>
           <p className="muted">GPS 없이 기록하면 「직접 기록」 도장이 찍혀요.</p>
           <label>
             <span>다녀온 날</span>

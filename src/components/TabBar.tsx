@@ -1,11 +1,12 @@
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { go, type Route } from '../lib/router'
-import { IconHome, IconList, IconMap, IconStamp } from './Icons'
+import { IconHills, IconHome, IconList, IconMap, IconStamp } from './Icons'
 
 const TABS: { name: Route['name']; path: string; label: string; icon: ReactNode }[] = [
   { name: 'home', path: '/', label: '홈', icon: <IconHome /> },
-  { name: 'list', path: '/list', label: '명산', icon: <IconList /> },
+  { name: 'list', path: '/list', label: '명산100', icon: <IconList /> },
+  { name: 'local', path: '/local', label: '동네 산', icon: <IconHills /> },
   { name: 'map', path: '/map', label: '지도', icon: <IconMap /> },
   { name: 'stamps', path: '/stamps', label: '도장첩', icon: <IconStamp /> },
 ]

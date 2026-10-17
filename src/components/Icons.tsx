@@ -50,3 +50,9 @@ export const IconLocate = () => (
     <path d="M12 2V5M12 19V22M2 12H5M19 12H22" />
   </svg>
 )
+export const IconHills = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" {...p}>
+    <path d="M2 19C4.5 13.5 7 11.5 9.5 13.5C12 8.5 16.5 7.5 22 19Z" />
+    <path d="M15.5 9.5V5.5L18.5 6.5L15.5 7.5" />
+  </svg>
+)

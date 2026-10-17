@@ -7,6 +7,7 @@ import { Stamp } from '../components/Stamp'
 import { distanceM, formatDistance } from '../lib/geo'
 import { locate, useHere } from '../lib/here'
 import { levelFor } from '../lib/levels'
+import { LOCAL_COLOR, totalVisits, useLocals } from '../lib/local'
 import { MOUNTAINS, REGION_COLOR, REGIONS, TOTAL, getMountain, type Mountain } from '../lib/mountains'
 import { go } from '../lib/router'
 import { useClimbs } from '../lib/store'
@@ -30,6 +31,8 @@ function pickOfDay(pool: Mountain[]) {
 
 export function Home() {
   const climbs = useClimbs()
+  const locals = useLocals()
+  const localCount = Object.keys(locals).length
   const count = Object.keys(climbs).length
   const { current, next } = levelFor(count)
   const { here, loading: locating, error: locateError } = useHere()
@@ -103,6 +106,16 @@ export function Home() {
           )}
         </div>
       </section>
+
+      <motion.button className="card local-card" whileTap={{ scale: 0.97 }} onClick={() => go('/local')}>
+        <Mascot size={64} color={LOCAL_COLOR} mood={localCount ? 'happy' : 'idle'} flag={localCount > 0} still />
+        <div>
+          <span className="eyebrow green">동네 산</span>
+          <h3>{localCount ? `${localCount}곳 · 총 ${totalVisits(locals)}번 등반` : '뒷산도 인증해요'}</h3>
+          <p className="muted small">{localCount ? '오늘도 동네 한 바퀴 어때요?' : '명산100 말고도 가까운 산에서 도장을 모아요'}</p>
+        </div>
+        <span className="chev">›</span>
+      </motion.button>
 
       <section className="card">
         <h2 className="section-title">지역별 정복 현황</h2>

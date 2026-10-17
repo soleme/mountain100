@@ -1,14 +1,16 @@
 import { motion } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { IconGear, IconLocate } from '../components/Icons'
 import { Mascot } from '../components/Mascot'
 import { ProgressRing } from '../components/ProgressRing'
 import { Stamp } from '../components/Stamp'
-import { distanceM, formatDistance, getPosition } from '../lib/geo'
+import { distanceM, formatDistance } from '../lib/geo'
+import { locate, useHere } from '../lib/here'
 import { levelFor } from '../lib/levels'
 import { MOUNTAINS, REGION_COLOR, REGIONS, TOTAL, getMountain, type Mountain } from '../lib/mountains'
 import { go } from '../lib/router'
 import { useClimbs } from '../lib/store'
+import { openNearList } from './List'
 
 function greeting(count: number) {
   if (count === 0) return '첫 번째 산, 같이 올라가 볼까요?'
@@ -26,14 +28,11 @@ function pickOfDay(pool: Mountain[]) {
   return pool[(seed * 7919) % pool.length]
 }
 
-type Near = { m: Mountain; d: number }
-
 export function Home() {
   const climbs = useClimbs()
   const count = Object.keys(climbs).length
   const { current, next } = levelFor(count)
-  const [near, setNear] = useState<Near[] | null>(null)
-  const [nearState, setNearState] = useState<'idle' | 'loading' | string>('idle')
+  const { here, loading: locating, error: locateError } = useHere()
 
   const recent = useMemo(
     () =>
@@ -45,22 +44,16 @@ export function Home() {
   const todo = useMemo(() => MOUNTAINS.filter((m) => !climbs[m.id]), [climbs])
   const today = pickOfDay(todo)
 
-  const findNear = async () => {
-    setNearState('loading')
-    try {
-      const pos = await getPosition()
-      const here = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-      setNear(
-        todo
-          .map((m) => ({ m, d: distanceM(here, m) }))
-          .sort((a, b) => a.d - b.d)
-          .slice(0, 5),
-      )
-      setNearState('idle')
-    } catch (e) {
-      setNearState((e as Error).message)
-    }
-  }
+  const near = useMemo(
+    () =>
+      here
+        ? todo
+            .map((m) => ({ m, d: distanceM(here, m) }))
+            .sort((a, b) => a.d - b.d)
+            .slice(0, 5)
+        : null,
+    [here, todo],
+  )
 
   return (
     <div className="page home">
@@ -155,11 +148,11 @@ export function Home() {
       <section className="card">
         <div className="section-head">
           <h2 className="section-title">내 주변 미정복 명산</h2>
-          <button className="pill-btn" onClick={findNear} disabled={nearState === 'loading'}>
-            <IconLocate /> {nearState === 'loading' ? '찾는 중…' : near ? '새로고침' : '찾기'}
+          <button className="pill-btn" onClick={() => locate()} disabled={locating}>
+            <IconLocate /> {locating ? '찾는 중…' : near ? '새로고침' : '찾기'}
           </button>
         </div>
-        {nearState !== 'idle' && nearState !== 'loading' && <p className="muted small">{nearState}</p>}
+        {locateError && !locating && <p className="muted small">{locateError}</p>}
         {near ? (
           <ul className="near-list">
             {near.map(({ m, d }) => (
@@ -174,8 +167,11 @@ export function Home() {
             ))}
           </ul>
         ) : (
-          nearState === 'idle' && <p className="muted small">현재 위치에서 가까운 순으로 보여드려요.</p>
+          !locateError && <p className="muted small">현재 위치에서 가까운 순으로 보여드려요.</p>
         )}
+        <button className="more-btn" onClick={() => openNearList('todo')}>
+          내 주변 명산 전체 보기 →
+        </button>
       </section>
 
       {recent.length > 0 && (

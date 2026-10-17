@@ -18,7 +18,8 @@ export function isWithinSummit(distance: number, accuracy: number) {
 
 export function formatDistance(m: number) {
   if (m < 1000) return `${Math.round(m)}m`
-  if (m < 10000) return `${(m / 1000).toFixed(1)}km`
+  // 반경 필터(10km 이내 등)와 헷갈리지 않게 100km 미만은 소수점 한 자리까지
+  if (m < 100000) return `${(m / 1000).toFixed(1)}km`
   return `${Math.round(m / 1000)}km`
 }
 

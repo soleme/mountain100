@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css'
 import { useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import { IconLocate } from '../components/Icons'
-import { getPosition } from '../lib/geo'
+import { getHere, locate, useHere } from '../lib/here'
 import { MOUNTAINS, REGION_COLOR } from '../lib/mountains'
 import { go } from '../lib/router'
 import { useClimbs } from '../lib/store'
@@ -29,25 +29,17 @@ function pinIcon(done: boolean, color: string) {
   return icon
 }
 
-function LocateButton({ map, onFound }: { map: L.Map | null; onFound: (p: L.LatLngTuple) => void }) {
-  const [busy, setBusy] = useState(false)
+function LocateButton({ map }: { map: L.Map | null }) {
+  const { loading } = useHere()
   return (
     <button
       className="map-fab"
       aria-label="내 위치"
-      disabled={busy}
+      disabled={loading}
       onClick={async () => {
-        setBusy(true)
-        try {
-          const pos = await getPosition()
-          const p: L.LatLngTuple = [pos.coords.latitude, pos.coords.longitude]
-          onFound(p)
-          map?.flyTo(p, 10)
-        } catch (e) {
-          alert((e as Error).message)
-        } finally {
-          setBusy(false)
-        }
+        const here = await locate()
+        if (here) map?.flyTo([here.lat, here.lng], 10)
+        else alert(getHere().error ?? '현재 위치를 확인할 수 없어요.')
       }}
     >
       <IconLocate />
@@ -58,7 +50,7 @@ function LocateButton({ map, onFound }: { map: L.Map | null; onFound: (p: L.LatL
 export function MapPage() {
   const climbs = useClimbs()
   const [onlyTodo, setOnlyTodo] = useState(false)
-  const [me, setMe] = useState<L.LatLngTuple | null>(null)
+  const { here } = useHere()
   const [map, setMap] = useState<L.Map | null>(null)
   const list = useMemo(() => MOUNTAINS.filter((m) => !onlyTodo || !climbs[m.id]), [onlyTodo, climbs])
   const done = Object.keys(climbs).length
@@ -92,9 +84,9 @@ export function MapPage() {
             </Popup>
           </Marker>
         ))}
-        {me && <CircleMarker center={me} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#3D8BFF', fillOpacity: 1 }} />}
+        {here && <CircleMarker center={[here.lat, here.lng]} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#3D8BFF', fillOpacity: 1 }} />}
       </MapContainer>
-      <LocateButton map={map} onFound={setMe} />
+      <LocateButton map={map} />
     </div>
   )
 }
